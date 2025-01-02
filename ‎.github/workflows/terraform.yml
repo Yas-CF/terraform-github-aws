@@ -4,7 +4,8 @@ on:
   push:
     branches:
       - main
-    pull_request:
+  pull_request:
+
 jobs:
   terraform:
     name: Deploy Terraform
@@ -41,3 +42,4 @@ jobs:
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve tfplan
+
