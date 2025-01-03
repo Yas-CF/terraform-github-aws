@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Permite ejecutar manualmente este workflow
+  workflow_dispatch: # Permite ejecutar manualmente el workflow
     inputs:
       action:
         description: "Choose action: apply or destroy"
@@ -29,7 +29,7 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform -chdir=terraform init
 
   plan:
     name: Terraform Plan
@@ -45,7 +45,7 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan
+        run: terraform -chdir=terraform plan -out=tfplan
 
   apply:
     name: Terraform Apply
@@ -62,7 +62,7 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+        run: terraform -chdir=terraform apply -auto-approve tfplan
 
   destroy:
     name: Terraform Destroy
@@ -78,5 +78,6 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Destroy
-        run: terraform destroy -auto-approve
+        run: terraform -chdir=terraform destroy -auto-approve
+
 
