@@ -6,16 +6,16 @@ on:
       - main
 
 jobs:
-  init:
-    name: Terraform Init
+  terraform:
+    name: Apply Terraform Changes
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout repository
+      # 1. Chequea el código del repositorio
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Configure AWS credentials
+      # 2. Configura las credenciales de AWS
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -23,71 +23,29 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      # 3. Setup Terraform
+      # 3. Cambia al directorio de Terraform
+      - name: Change directory to Terraform
+        working-directory: ./terraform
+        run: pwd
+
+      # 4. Configura Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
 
-      # 4. Terraform Init
+      # 5. Inicializa Terraform
       - name: Terraform Init
         working-directory: ./terraform
         run: terraform init
 
-  plan:
-    name: Terraform Plan
-    runs-on: ubuntu-latest
-    needs: init # Este job depende de 'init'
-
-    steps:
-      # 1. Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # 2. Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      # 3. Setup Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      # 4. Terraform Plan
+      # 6. Planifica los cambios
       - name: Terraform Plan
         working-directory: ./terraform
         run: terraform plan -out=tfplan
 
-  apply:
-    name: Terraform Apply
-    runs-on: ubuntu-latest
-    needs: plan # Este job depende de 'plan'
-
-    steps:
-      # 1. Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # 2. Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      # 3. Setup Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      # 4. Terraform Apply
+      # 7. Aplica los cambios automáticamente
       - name: Terraform Apply
         working-directory: ./terraform
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -auto-approve tfplan  
+este workflow quiero usar solo que separalo po rjobs 
