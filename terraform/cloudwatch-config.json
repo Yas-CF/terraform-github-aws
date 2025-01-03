@@ -1,19 +1,32 @@
 {
     "metrics": {
-      "append_dimensions": {
-        "InstanceId": "${InstanceId}"
-      },
-      "metrics_collected": {
-        "disk": {
-          "measurement": ["used_percent"],
-          "metrics_collection_interval": 60,
-          "resources": ["/"]
+        "append_dimensions": {
+            "InstanceId": "${aws:InstanceId}"
         },
-        "mem": {
-          "measurement": ["used_percent"],
-          "metrics_collection_interval": 60
+        "metrics_collected": {
+            "cpu": {
+                "measurement": [
+                    "cpu_usage_idle",
+                    "cpu_usage_user",
+                    "cpu_usage_system"
+                ],
+                "metrics_collection_interval": 60
+            },
+            "disk": {
+                "measurement": [
+                    "used_percent"
+                ],
+                "metrics_collection_interval": 60,
+                "resources": [
+                    "/"
+                ]
+            },
+            "mem": {
+                "measurement": [
+                    "used_percent"
+                ],
+                "metrics_collection_interval": 60
+            }
         }
-      }
     }
-  }
-  
+}
