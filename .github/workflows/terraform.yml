@@ -47,5 +47,4 @@ jobs:
       # 7. Aplica los cambios automáticamente
       - name: Terraform Apply
         working-directory: ./terraform
-        run: terraform apply -auto-approve tfplan  
-este workflow quiero usar solo que separalo po rjobs 
+        run: terraform apply -auto-approve tfplan
