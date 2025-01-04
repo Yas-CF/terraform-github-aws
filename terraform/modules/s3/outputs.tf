@@ -8,11 +8,16 @@ output "bucket_arn" {
   description = "The ARN of the S3 bucket."
 }
 
+output "iam_role_arn" {
+  value       = aws_iam_role.s3_backend_role.arn
+  description = "The ARN of the IAM role for the S3 backend."
+}
+
 output "backend_config" {
   value = {
     bucket = aws_s3_bucket.bucket.bucket
     key    = "terraform/state/${var.environment}/terraform.tfstate"
-    region = "us-east-1"
+    region = var.aws_region
   }
-  description = "Backend configuration for Terraform remote state."
+  description = "Configuration for Terraform S3 backend."
 }
