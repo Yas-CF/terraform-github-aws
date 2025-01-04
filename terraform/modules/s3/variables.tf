@@ -18,3 +18,8 @@ variable "environment" {
   type        = string
   default     = "dev"
 }
+
+variable "aws_region" {
+  description = "The AWS region for the bucket"
+  type        = string
+}
