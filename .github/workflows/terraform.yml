@@ -18,7 +18,9 @@ jobs:
   create_bucket:
     name: Create S3 Bucket
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.action == 'init' }}
+    if: ${{ github.event.inputs.action == 'init' || github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy' }}
+    outputs:
+      bucket_name: ${{ steps.extract_bucket.outputs.bucket_name }}
     steps:
       # 1. Checkout the repository
       - name: Checkout repository
@@ -38,16 +40,17 @@ jobs:
         with:
           terraform_version: 1.5.0
 
-      # 4. Initialize and Apply to Create Bucket
+      # 4. Initialize Terraform with Local State
       - name: Terraform Init (Local State)
         working-directory: ./terraform
         run: terraform init
 
+      # 5. Apply to Create Bucket
       - name: Terraform Apply (Create Bucket)
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
-      # 5. Save Bucket Name as Output
+      # 6. Extract Bucket Name
       - name: Extract Bucket Name
         working-directory: ./terraform
         id: extract_bucket
@@ -76,7 +79,7 @@ jobs:
         with:
           terraform_version: 1.5.0
 
-      # 4. Initialize Backend with Dynamically Created Bucket
+      # 4. Initialize Backend with Created Bucket
       - name: Terraform Init with Backend
         working-directory: ./terraform
         run: |
