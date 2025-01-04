@@ -1,4 +1,4 @@
-name: Terraform Deployment
+name: Terraform Deployment with Dynamic S3 Backend
 
 on:
   workflow_dispatch:
@@ -15,16 +15,16 @@ on:
           - destroy
 
 jobs:
-  init:
-    name: Terraform Init
+  create_bucket:
+    name: Create S3 Bucket
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.action == 'init' }}
     steps:
-      # Checkout the repository
+      # 1. Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Configure AWS credentials
+      # 2. Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -32,30 +32,37 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Setup Terraform
+      # 3. Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
 
-      # Initialize Terraform
-      - name: Terraform Init
+      # 4. Initialize and Apply to Create Bucket
+      - name: Terraform Init (Local State)
         working-directory: ./terraform
-        run: |
-          terraform init -backend-config="bucket=${{ secrets.S3_BUCKET_NAME }}" \
-                         -backend-config="key=terraform/state/${{ secrets.ENVIRONMENT }}/terraform.tfstate" \
-                         -backend-config="region=${{ secrets.AWS_REGION }}"
+        run: terraform init
 
-  plan:
-    name: Terraform Plan
+      - name: Terraform Apply (Create Bucket)
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
+
+      # 5. Save Bucket Name as Output
+      - name: Extract Bucket Name
+        working-directory: ./terraform
+        id: extract_bucket
+        run: echo "::set-output name=bucket_name::$(terraform output -raw bucket_name)"
+
+  terraform_operations:
+    name: Terraform Operations
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' }}
+    needs: create_bucket
     steps:
-      # Checkout the repository
+      # 1. Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Configure AWS credentials
+      # 2. Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -63,110 +70,34 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # Setup Terraform
+      # 3. Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
 
-      # Initialize Terraform
-      - name: Terraform Init
+      # 4. Initialize Backend with Dynamically Created Bucket
+      - name: Terraform Init with Backend
         working-directory: ./terraform
         run: |
-          terraform init -backend-config="bucket=${{ secrets.S3_BUCKET_NAME }}" \
+          terraform init -backend-config="bucket=${{ needs.create_bucket.outputs.bucket_name }}" \
                          -backend-config="key=terraform/state/${{ secrets.ENVIRONMENT }}/terraform.tfstate" \
                          -backend-config="region=${{ secrets.AWS_REGION }}"
 
-      # Run Terraform Plan
+      # 5. Terraform Plan
       - name: Terraform Plan
+        if: ${{ github.event.inputs.action == 'plan' }}
         working-directory: ./terraform
         run: terraform plan -out=tfplan
 
-      # Upload Plan and Lockfile
-      - name: Upload Plan and Lockfile
-        uses: actions/upload-artifact@v3
-        with:
-          name: tfplan-artifacts
-          path: |
-            ./terraform/tfplan
-            ./terraform/terraform.lock.hcl
-
-  apply:
-    name: Terraform Apply
-    runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.action == 'apply' }}
-    needs: plan
-    steps:
-      # Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      # Setup Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      # Download Plan and Lockfile
-      - name: Download Plan and Lockfile
-        uses: actions/download-artifact@v3
-        with:
-          name: tfplan-artifacts
-          path: ./terraform
-
-      # Initialize Terraform
-      - name: Initialize Terraform
-        working-directory: ./terraform
-        run: |
-          terraform init -backend-config="bucket=${{ secrets.S3_BUCKET_NAME }}" \
-                         -backend-config="key=terraform/state/${{ secrets.ENVIRONMENT }}/terraform.tfstate" \
-                         -backend-config="region=${{ secrets.AWS_REGION }}"
-
-      # Apply Terraform Plan
+      # 6. Terraform Apply
       - name: Terraform Apply
+        if: ${{ github.event.inputs.action == 'apply' }}
         working-directory: ./terraform
         run: terraform apply -auto-approve tfplan
 
-  destroy:
-    name: Terraform Destroy
-    runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.action == 'destroy' }}
-    steps:
-      # Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # Configure AWS credentials
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      # Setup Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      # Initialize Terraform
-      - name: Terraform Init
-        working-directory: ./terraform
-        run: |
-          terraform init -backend-config="bucket=${{ secrets.S3_BUCKET_NAME }}" \
-                         -backend-config="key=terraform/state/${{ secrets.ENVIRONMENT }}/terraform.tfstate" \
-                         -backend-config="region=${{ secrets.AWS_REGION }}"
-
-      # Destroy Terraform Resources
+      # 7. Terraform Destroy
       - name: Terraform Destroy
+        if: ${{ github.event.inputs.action == 'destroy' }}
         working-directory: ./terraform
         run: terraform destroy -auto-approve
