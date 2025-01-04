@@ -2,6 +2,32 @@ provider "aws" {
   region  = "us-east-1" 
 }
 
+provider "aws" {
+  region = var.aws_region
+}
+
+terraform {
+  backend "s3" {}
+}
+
+module "s3" {
+  source      = "./modules/s3"
+  bucket_name = var.bucket_name
+  file_key    = var.file_key
+  file_path   = var.file_path
+  environment = var.environment
+}
+
+data "terraform_remote_state" "s3_backend" {
+  backend = "s3"
+
+  config = module.s3.backend_config
+}
+
+output "s3_backend_config" {
+  value = data.terraform_remote_state.s3_backend.config
+}
+
 # Módulo de VPC
 module "vpc" {
   source    = "./modules/vpc"
@@ -38,13 +64,6 @@ module "ec2_api_server" {
   subnet_id      = module.subnets.public_subnet_id
   vpc_id         = module.vpc.vpc_id
   ssh_access_cidr = var.ssh_access_cidr
-}
-
-module "s3" {
-  source      = "./modules/s3"
-  bucket_name = var.bucket_name
-  file_key    = var.file_key
-  file_path   = var.file_path
 }
 
 module "sqs" {
