@@ -15,18 +15,14 @@ on:
           - destroy
 
 jobs:
-  create_bucket:
-    name: Create S3 Bucket
+  setup_base_resources:
+    name: Setup Base Resources
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.action == 'init' || github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy' }}
-    outputs:
-      bucket_name: ${{ steps.extract_bucket.outputs.bucket_name }}
     steps:
-      # 1. Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -34,38 +30,64 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # 3. Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
 
-      # 4. Initialize Terraform with Local State
-      - name: Terraform Init (Local State)
+      - name: Terraform Init (Base Resources)
         working-directory: ./terraform
         run: terraform init
 
-      # 5. Apply to Create Bucket
+      - name: Terraform Apply (Base Resources)
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
+
+  create_bucket:
+    name: Create S3 Bucket
+    runs-on: ubuntu-latest
+    needs: setup_base_resources
+    outputs:
+      bucket_name: ${{ steps.extract_bucket.outputs.bucket_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init (S3)
+        working-directory: ./terraform/
+        run: terraform init
+
       - name: Terraform Apply (Create Bucket)
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
-      # 6. Extract Bucket Name
       - name: Extract Bucket Name
         working-directory: ./terraform
         id: extract_bucket
-        run: echo "::set-output name=bucket_name::$(terraform output -raw bucket_name)"
+        run: |
+          bucket_name=$(terraform output -raw bucket_name)
+          echo "::set-output name=bucket_name::$bucket_name"
 
   terraform_operations:
     name: Terraform Operations
     runs-on: ubuntu-latest
     needs: create_bucket
     steps:
-      # 1. Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -73,13 +95,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # 3. Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
 
-      # 4. Initialize Backend with Created Bucket
       - name: Terraform Init with Backend
         working-directory: ./terraform
         run: |
@@ -87,19 +107,16 @@ jobs:
                          -backend-config="key=terraform/state/${{ secrets.ENVIRONMENT }}/terraform.tfstate" \
                          -backend-config="region=${{ secrets.AWS_REGION }}"
 
-      # 5. Terraform Plan
       - name: Terraform Plan
         if: ${{ github.event.inputs.action == 'plan' }}
         working-directory: ./terraform
         run: terraform plan -out=tfplan
 
-      # 6. Terraform Apply
       - name: Terraform Apply
         if: ${{ github.event.inputs.action == 'apply' }}
         working-directory: ./terraform
         run: terraform apply -auto-approve tfplan
 
-      # 7. Terraform Destroy
       - name: Terraform Destroy
         if: ${{ github.event.inputs.action == 'destroy' }}
         working-directory: ./terraform
