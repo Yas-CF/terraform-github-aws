@@ -25,9 +25,9 @@ output "ec2_security_group_id" {
   description = "ID of the security group attached to the EC2 instance"
 }
 
-output "s3_bucket_name" {
-  value       = module.s3.bucket_name
-  description = "The name of the S3 bucket created."
+output "bucket_name" {
+  value = aws_s3_bucket.bucket.id
+  description = "The name of the S3 bucket."
 }
 
 output "s3_object_key" {
