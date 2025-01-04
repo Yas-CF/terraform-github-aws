@@ -41,17 +41,17 @@ jobs:
 
       # Initialize Terraform (Local State)
       - name: Terraform Init
-        working-directory: ./terraform/s3
+        working-directory: ./terraform
         run: terraform init
 
       # Apply Terraform to create the bucket
       - name: Terraform Apply
-        working-directory: ./terraform/s3
+        working-directory: ./terraform
         run: terraform apply -auto-approve
 
       # Extract Bucket Name
       - name: Extract Bucket Name
-        working-directory: ./terraform/s3
+        working-directory: ./terraform
         id: get_bucket_name
         run: |
           bucket_name=$(terraform output -raw bucket_name)
