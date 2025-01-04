@@ -74,7 +74,6 @@ jobs:
           path: |
             ./terraform/tfplan
             ./terraform/terraform.lock.hcl
-
   apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
@@ -130,13 +129,9 @@ jobs:
         with:
           terraform_version: 1.5.0
 
-      - name: Initialize Terraform
+      - name: Terraform Init
         working-directory: ./terraform
         run: terraform init
-
-      - name: Verify Terraform State
-        working-directory: ./terraform
-        run: terraform state list || echo "No resources managed by Terraform."
 
       - name: Terraform Destroy
         working-directory: ./terraform
