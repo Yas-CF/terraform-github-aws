@@ -8,7 +8,7 @@ module "s3" {
   file_key    = var.file_key
   file_path   = var.file_path
   environment = var.environment
-  aws_region  = var.aws_region
+  aws_region  = us-east-1
 }
 
 terraform {
