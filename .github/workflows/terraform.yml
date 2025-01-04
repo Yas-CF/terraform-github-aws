@@ -20,9 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.action == 'init' }}
     steps:
+      # Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -30,11 +32,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
 
+      # Initialize Terraform
       - name: Terraform Init
         working-directory: ./terraform
         run: |
@@ -47,9 +51,11 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' }}
     steps:
+      # Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -57,11 +63,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
 
+      # Initialize Terraform
       - name: Terraform Init
         working-directory: ./terraform
         run: |
@@ -69,10 +77,12 @@ jobs:
                          -backend-config="key=terraform/state/${{ secrets.ENVIRONMENT }}/terraform.tfstate" \
                          -backend-config="region=${{ secrets.AWS_REGION }}"
 
+      # Run Terraform Plan
       - name: Terraform Plan
         working-directory: ./terraform
         run: terraform plan -out=tfplan
 
+      # Upload Plan and Lockfile
       - name: Upload Plan and Lockfile
         uses: actions/upload-artifact@v3
         with:
@@ -87,9 +97,11 @@ jobs:
     if: ${{ github.event.inputs.action == 'apply' }}
     needs: plan
     steps:
+      # Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -97,17 +109,20 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
 
+      # Download Plan and Lockfile
       - name: Download Plan and Lockfile
         uses: actions/download-artifact@v3
         with:
           name: tfplan-artifacts
           path: ./terraform
 
+      # Initialize Terraform
       - name: Initialize Terraform
         working-directory: ./terraform
         run: |
@@ -115,6 +130,7 @@ jobs:
                          -backend-config="key=terraform/state/${{ secrets.ENVIRONMENT }}/terraform.tfstate" \
                          -backend-config="region=${{ secrets.AWS_REGION }}"
 
+      # Apply Terraform Plan
       - name: Terraform Apply
         working-directory: ./terraform
         run: terraform apply -auto-approve tfplan
@@ -124,9 +140,11 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.action == 'destroy' }}
     steps:
+      # Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -134,11 +152,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
 
+      # Initialize Terraform
       - name: Terraform Init
         working-directory: ./terraform
         run: |
@@ -146,6 +166,7 @@ jobs:
                          -backend-config="key=terraform/state/${{ secrets.ENVIRONMENT }}/terraform.tfstate" \
                          -backend-config="region=${{ secrets.AWS_REGION }}"
 
+      # Destroy Terraform Resources
       - name: Terraform Destroy
         working-directory: ./terraform
         run: terraform destroy -auto-approve
