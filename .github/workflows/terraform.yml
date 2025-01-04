@@ -42,7 +42,7 @@ jobs:
   plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.action == 'plan' }}
+    if: ${{ github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -67,10 +67,17 @@ jobs:
         working-directory: ./terraform
         run: terraform plan -out=tfplan
 
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan
+          path: ./terraform/tfplan
+
   apply:
     name: Terraform Apply
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.action == 'apply' }}
+    needs: plan
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -87,9 +94,11 @@ jobs:
         with:
           terraform_version: 1.5.0
 
-      - name: Terraform Init
-        working-directory: ./terraform
-        run: terraform init
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v3
+        with:
+          name: tfplan
+          path: ./terraform/
 
       - name: Terraform Apply
         working-directory: ./terraform
